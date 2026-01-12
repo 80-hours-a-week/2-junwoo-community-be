@@ -4,7 +4,6 @@ from typing import Dict, Optional, Set
 import uuid
 
 def now_iso() -> str:
-    # 엑셀 예시가 Z 형태라 맞춰줌
     return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 def new_id() -> str:
@@ -31,7 +30,6 @@ _user_seq = 1
 _user_by_email: Dict[str, int] = {}
 _user_by_nickname: Dict[str, int] = {}
 
-# authToken -> userId
 _sessions: Dict[str, int] = {}
 
 # ---------- Posts ----------
@@ -41,8 +39,8 @@ class Post:
     title: str
     content: str
     authorUserId: int
-    fileId: Optional[str]          # 업로드 기반이면 fileId 보관
-    fileUrl: Optional[str]         # 엑셀 create/update 요청이 fileUrl이라 같이 보관
+    fileId: Optional[str]         
+    fileUrl: Optional[str]         
     hits: int
     likes: Set[int]                # userId set
     createdAt: str

@@ -11,7 +11,6 @@ app = FastAPI(title="커뮤니티 백엔드 API", version="0.1.0")
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    # detail에 {"code": "...", "data": None} 넣는 방식으로 통일
     if isinstance(exc.detail, dict) and "code" in exc.detail:
         return JSONResponse(status_code=exc.status_code, content=exc.detail)
     # fallback

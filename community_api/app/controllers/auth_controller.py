@@ -27,7 +27,6 @@ def signup(email: str, password: str, nickname: str, profile: UploadFile | None)
             fid = db.new_id()
             db.files[fid] = raw
             db.file_mimes[fid] = profile.content_type or "application/octet-stream"
-            # 엑셀 예시 경로: /public/image/profile/xxx.jpg
             profile_url = f"/public/image/profile/{fid}"
 
     db.create_user(email, hash_pw(password), nickname, profile_url)
