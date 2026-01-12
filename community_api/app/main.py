@@ -18,6 +18,5 @@ app.add_middleware(
 def health():
     return ok("OK", None)
 
-# ✅ 라우터 등록은 index에서 한 번에
 register_routers(app)
 
