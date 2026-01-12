@@ -1,26 +1,23 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import HTTPException
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers.auth_router import router as auth_router
-from app.routers.users_router import router as users_router
-from app.routers.posts_router import router as posts_router
-from app.routers.public_router import router as public_router
+from app.routers.index import register_routers
+from app.utils.responses import ok
 
-app = FastAPI(title="커뮤니티 백엔드 API", version="0.1.0")
+app = FastAPI(title="Community API")
 
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
-    if isinstance(exc.detail, dict) and "code" in exc.detail:
-        return JSONResponse(status_code=exc.status_code, content=exc.detail)
-    # fallback
-    return JSONResponse(status_code=exc.status_code, content={"code": "BAD_REQUEST", "data": None})
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/health")
 def health():
-    return {"code": "OK", "data": None}
+    return ok("OK", None)
 
-app.include_router(auth_router)
-app.include_router(users_router)
-app.include_router(posts_router)
-app.include_router(public_router)
+# ✅ 라우터 등록은 index에서 한 번에
+register_routers(app)
+
