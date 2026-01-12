@@ -7,7 +7,7 @@ from app.routers.users_router import router as users_router
 from app.routers.posts_router import router as posts_router
 from app.routers.public_router import router as public_router
 
-app = FastAPI(title="아무 말 대잔치 API", version="0.1.0")
+app = FastAPI(title="커뮤니티 백엔드 API", version="0.1.0")
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
