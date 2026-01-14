@@ -17,3 +17,4 @@ def require_user_with_sid(sessionId: str | None = Cookie(None)):
     if not u:
         err(401, "UNAUTHORIZED")
     return u, sessionId
+
