@@ -12,4 +12,3 @@ def get_file(file_id: str):
         err(404, "NOT_FOUND")
     mime = db.file_mimes.get(file_id, "application/octet-stream")
     return Response(content=raw, media_type=mime)
-

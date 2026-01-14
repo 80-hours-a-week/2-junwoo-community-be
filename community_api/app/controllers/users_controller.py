@@ -1,3 +1,4 @@
+from fastapi.responses import JSONResponse
 from app.storage import memory_store as db
 from app.utils.responses import ok, err
 from app.utils.security import valid_password, hash_pw
@@ -21,7 +22,8 @@ def get_me(u):
         "profileImageUrl": u.profileImageUrl,
     })
 
-def update_me(u, nickname: str):
+def update_me(u, payload: dict):
+    nickname = payload.get("nickname")
     if not nickname:
         err(400, "NICKNAME_REQUIRED")
     if len(nickname) > 10:
@@ -31,12 +33,15 @@ def update_me(u, nickname: str):
     if other and other.userId != u.userId:
         err(409, "NICKNAME_ALREADY_EXISTS")
 
-    # 메모리 객체 직접 수정
     u.nickname = nickname
     u.updatedAt = db.now_iso()
     return ok("USER_UPDATED", None)
 
-def update_password_me(u, password: str, password_confirm: str):
+def update_password(u, payload: dict):
+    password = payload.get("password")
+    password_confirm = payload.get("passwordConfirm")
+    if not password:
+        err(400, "PASSWORD_REQUIRED")
     if password != password_confirm:
         err(400, "PASSWORD_CONFIRM_MISMATCH")
     if not valid_password(password):
@@ -46,18 +51,21 @@ def update_password_me(u, password: str, password_confirm: str):
     u.updatedAt = db.now_iso()
     return ok("PASSWORD_UPDATED", None)
 
-def upload_profile_image(u, file_url: str):
-    u.profileImageUrl = file_url
+def update_profile_image_url(u, payload: dict):
+    url = payload.get("profileImageUrl")
+    if not url:
+        err(400, "BAD_REQUEST")
+    u.profileImageUrl = url
     u.updatedAt = db.now_iso()
-    return ok("PROFILE_IMAGE_UPDATED", {"profileImageUrl": file_url})
+    return ok("PROFILE_IMAGE_UPDATED", {"profileImageUrl": url})
 
-def delete_me(u):
-    # 간단 처리: 유저 삭제(실무에서는 연쇄 데이터 삭제 고려)
-    # 여기서는 과제 요구대로 "탈퇴 시 게시글/댓글 삭제"를 구현하고 싶으면 posts/comments도 지워주면 됨.
-    # 최소 구현: 유저만 제거
-    from app.storage.memory_store import _users, _user_by_email, _user_by_nickname  # noqa
-    _users.pop(u.userId, None)
-    _user_by_email.pop(u.email, None)
-    _user_by_nickname.pop(u.nickname, None)
-    return ok("USER_DELETED", None)
+def delete_me(u_and_sid):
+    u, sid = u_and_sid
 
+    # 유저 삭제(간단 처리)
+    db.delete_user(u.userId)
+    db.delete_session(sid)
+
+    res = JSONResponse(content=ok("USER_DELETED", None))
+    res.delete_cookie("sessionId", path="/")
+    return res

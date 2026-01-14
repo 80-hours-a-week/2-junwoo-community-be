@@ -2,164 +2,105 @@ from app.storage import memory_store as db
 from app.utils.responses import ok, err
 
 def list_posts(offset: int, limit: int):
-    items = list(db._posts.values())  # noqa: 내부 접근(과제용)
-    items.sort(key=lambda p: p.postId, reverse=True)
-
-    if limit and limit > 0:
-        items = items[offset:offset+limit]
-    else:
-        items = items[offset:]
-
-    out = []
-    for p in items:
-        out.append({
-            "postId": p.postId,
-            "title": p.title[:26],
-            "authorUserId": p.authorUserId,
-            "fileUrl": p.fileUrl,
-            "hits": p.hits,
-            "likeCount": len(p.likes),
-            "commentCount": sum(1 for c in db._comments.values() if c.postId == p.postId),  # noqa
-            "createdAt": p.createdAt,
-            "updatedAt": p.updatedAt,
-        })
-    return ok("POSTS_RETRIEVED", {"items": out})
+    items = db.list_posts(offset, limit)
+    return ok("POSTS_RETRIEVED", {"items": items})
 
 def get_post(post_id: int):
-    p = db._posts.get(post_id)  # noqa
+    p = db.get_post(post_id, increase_hits=True)
     if not p:
         err(404, "NOT_FOUND")
-    p.hits += 1
-    p.updatedAt = db.now_iso()
+    return ok("POST_RETRIEVED", p)
 
-    return ok("POST_RETRIEVED", {
-        "postId": p.postId,
-        "title": p.title,
-        "content": p.content,
-        "authorUserId": p.authorUserId,
-        "fileUrl": p.fileUrl,
-        "hits": p.hits,
-        "likeCount": len(p.likes),
-        "commentCount": sum(1 for c in db._comments.values() if c.postId == p.postId),  # noqa
-        "createdAt": p.createdAt,
-        "updatedAt": p.updatedAt,
-    })
+def create_post(u, payload: dict):
+    title = payload.get("title")
+    content = payload.get("content")
+    file_url = payload.get("fileUrl")
 
-def create_post(u, title: str, content: str, file_url: str | None):
     if not title:
         err(400, "TITLE_REQUIRED")
     if len(title) > 26:
         err(400, "TITLE_TOO_LONG")
     if not content:
         err(400, "CONTENT_REQUIRED")
-    p = db.create_post(title, content, u.userId, file_url)
-    return ok("POST_CREATED", {"postId": p.postId})
 
-def update_post(u, post_id: int, title: str | None, content: str | None, file_url: str | None):
-    p = db._posts.get(post_id)  # noqa
+    p = db.create_post(title=title, content=content, author_user_id=u.userId, file_url=file_url)
+    return ok("POST_CREATED", {"postId": p["postId"]})
+
+def update_post(u, post_id: int, payload: dict):
+    title = payload.get("title")
+    content = payload.get("content")
+    file_url = payload.get("fileUrl")
+
+    p = db.get_post(post_id, increase_hits=False)
     if not p:
         err(404, "NOT_FOUND")
-    if p.authorUserId != u.userId:
+    if p["authorUserId"] != u.userId:
         err(403, "FORBIDDEN")
 
-    if title is not None:
-        if not title:
-            err(400, "TITLE_REQUIRED")
-        if len(title) > 26:
-            err(400, "TITLE_TOO_LONG")
-        p.title = title
-    if content is not None:
-        if not content:
-            err(400, "CONTENT_REQUIRED")
-        p.content = content
+    if not title:
+        err(400, "TITLE_REQUIRED")
+    if len(title) > 26:
+        err(400, "TITLE_TOO_LONG")
+    if not content:
+        err(400, "CONTENT_REQUIRED")
 
-    p.fileUrl = file_url
-    p.updatedAt = db.now_iso()
+    db.update_post(post_id, title, content, file_url)
     return ok("POST_UPDATED", None)
 
 def delete_post(u, post_id: int):
-    p = db._posts.get(post_id)  # noqa
+    p = db.get_post(post_id, increase_hits=False)
     if not p:
         err(404, "NOT_FOUND")
-    if p.authorUserId != u.userId:
+    if p["authorUserId"] != u.userId:
         err(403, "FORBIDDEN")
 
-    db._posts.pop(post_id, None)  # noqa
-    # 연관 댓글 삭제(과제용)
-    for cid in list(db._comments.keys()):  # noqa
-        if db._comments[cid].postId == post_id:  # noqa
-            db._comments.pop(cid, None)  # noqa
+    db.delete_post(post_id)
     return ok("POST_DELETED", None)
 
 def like_post(u, post_id: int):
-    p = db._posts.get(post_id)  # noqa
-    if not p:
+    if not db.get_post(post_id, increase_hits=False):
         err(404, "NOT_FOUND")
-    p.likes.add(u.userId)
-    return ok("POST_LIKED", {"likeCount": len(p.likes)})
+    cnt = db.like_post(post_id, u.userId)
+    return ok("POST_LIKED", {"likeCount": cnt})
 
 def unlike_post(u, post_id: int):
-    p = db._posts.get(post_id)  # noqa
-    if not p:
+    if not db.get_post(post_id, increase_hits=False):
         err(404, "NOT_FOUND")
-    p.likes.discard(u.userId)
-    return ok("POST_UNLIKED", {"likeCount": len(p.likes)})
+    cnt = db.unlike_post(post_id, u.userId)
+    return ok("POST_UNLIKED", {"likeCount": cnt})
 
 def list_comments(post_id: int):
-    p = db._posts.get(post_id)  # noqa
-    if not p:
+    if not db.get_post(post_id, increase_hits=False):
         err(404, "NOT_FOUND")
-    items = [c for c in db._comments.values() if c.postId == post_id]  # noqa
-    items.sort(key=lambda c: c.commentId)
+    items = db.list_comments(post_id)
+    return ok("COMMENTS_RETRIEVED", {"items": items})
 
-    out = []
-    for c in items:
-        out.append({
-            "commentId": c.commentId,
-            "postId": c.postId,
-            "content": c.content,
-            "authorUserId": c.authorUserId,
-            "createdAt": c.createdAt,
-            "updatedAt": c.updatedAt,
-        })
-    return ok("COMMENTS_RETRIEVED", {"items": out})
-
-def create_comment(u, post_id: int, content: str):
+def create_comment(u, post_id: int, payload: dict):
+    content = payload.get("content")
     if not content:
         err(400, "COMMENT_REQUIRED")
-    p = db._posts.get(post_id)  # noqa
-    if not p:
+    if not db.get_post(post_id, increase_hits=False):
         err(404, "NOT_FOUND")
     c = db.create_comment(post_id, content, u.userId)
-    return ok("COMMENT_CREATED", {"commentId": c.commentId})
+    return ok("COMMENT_CREATED", {"commentId": c["commentId"]})
 
-def update_comment(u, post_id: int, comment_id: int, content: str):
+def update_comment(u, post_id: int, comment_id: int, payload: dict):
+    content = payload.get("content")
     if not content:
         err(400, "COMMENT_REQUIRED")
-    c = db._comments.get(comment_id)  # noqa
-    if not c or c.postId != post_id:
+    c = db.get_comment(comment_id)
+    if not c or c["postId"] != post_id:
         err(404, "NOT_FOUND")
-    if c.authorUserId != u.userId:
+    if c["authorUserId"] != u.userId:
         err(403, "FORBIDDEN")
-
-    c.content = content
-    c.updatedAt = db.now_iso()
+    db.update_comment(comment_id, content)
     return ok("COMMENT_UPDATED", None)
 
 def delete_comment(u, post_id: int, comment_id: int):
-    c = db._comments.get(comment_id)  # noqa
-    if not c or c.postId != post_id:
+    c = db.get_comment(comment_id)
+    if not c or c["postId"] != post_id:
         err(404, "NOT_FOUND")
-    if c.authorUserId != u.userId:
+    if c["authorUserId"] != u.userId:
         err(403, "FORBIDDEN")
-    db._comments.pop(comment_id, None)  # noqa
+    db.delete_comment(comment_id)
     return ok("COMMENT_DELETED", None)
-
-def save_file(raw: bytes, mime: str):
-    file_id = db.new_id()
-    db.files[file_id] = raw
-    db.file_mimes[file_id] = mime
-    url = f"/public/files/{file_id}"
-    db.file_urls[file_id] = url
-    return ok("FILE_UPLOADED", {"fileId": file_id, "fileUrl": url})
-

@@ -23,7 +23,6 @@ def ok(code: str, data=None):
     return {"code": code, "data": data}
 
 def err(http_status: int, code: str):
-    # http_status는 직접 지정 가능, code는 ERRORS에 없으면 그대로 사용
     if code in ERRORS:
         st, msg = ERRORS[code]
         raise HTTPException(status_code=st, detail={"code": code, "message": msg})
