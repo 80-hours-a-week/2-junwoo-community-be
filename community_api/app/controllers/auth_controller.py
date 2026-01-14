@@ -16,7 +16,7 @@ def signup(payload: dict):
     password = payload.get("password")
     password_confirm = payload.get("passwordConfirm")
     nickname = payload.get("nickname")
-    profile_url = payload.get("profileImageUrl")  # JSON으로 받는다고 했으니 URL로 처리
+    profile_url = payload.get("profileImageUrl")
 
     if not email:
         err(400, "EMAIL_REQUIRED")
@@ -51,17 +51,17 @@ def login(payload: dict):
         err(400, "PASSWORD_REQUIRED")
 
     u = db.get_user_by_email(email)
-    if not u or u.passwordHash != hash_pw(password):
+    if not u or u["passwordHash"] != hash_pw(password):
         err(401, "UNAUTHORIZED")
 
-    sid = db.create_session(u.userId)
+    sid = db.create_session(u["userId"])
 
     res = JSONResponse(content=ok("LOGIN_SUCCESS", {
         "user": {
-            "userId": u.userId,
-            "email": u.email,
-            "nickname": u.nickname,
-            "profileImageUrl": u.profileImageUrl,
+            "userId": u["userId"],
+            "email": u["email"],
+            "nickname": u["nickname"],
+            "profileImageUrl": u.get("profileImageUrl"),
         }
     }))
     res.set_cookie(value=sid, **COOKIE_KW)
@@ -76,10 +76,10 @@ def logout(u_and_sid):
 
 def me(u):
     return ok("USER_RETRIEVED", {
-        "userId": u.userId,
-        "email": u.email,
-        "nickname": u.nickname,
-        "profileImageUrl": u.profileImageUrl,
+        "userId": u["userId"],
+        "email": u["email"],
+        "nickname": u["nickname"],
+        "profileImageUrl": u.get("profileImageUrl"),
     })
 
 def email_availability(email: str):

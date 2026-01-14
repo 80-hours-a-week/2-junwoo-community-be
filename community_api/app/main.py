@@ -18,10 +18,8 @@ app.add_middleware(
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(_: Request, exc: HTTPException):
-    # detail이 {"code": "...", "message": "..."} 형태면 그대로 반환
     if isinstance(exc.detail, dict) and "code" in exc.detail:
         return JSONResponse(status_code=exc.status_code, content=exc.detail)
-    # 그 외는 통일 응답
     return JSONResponse(
         status_code=exc.status_code,
         content={"code": "BAD_REQUEST", "message": "Bad request"}

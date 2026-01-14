@@ -27,5 +27,3 @@ def email_availability(email: str):
 @router.get("/nicknames/availability")
 def nickname_availability(nickname: str):
     return controller.nickname_availability(nickname)
-
-

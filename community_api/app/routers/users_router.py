@@ -27,5 +27,3 @@ def delete_me(u_and_sid=Depends(require_user_with_sid)):
 @router.get("/{user_id:int}")
 def get_user(user_id: int):
     return controller.get_user(user_id)
-
-
