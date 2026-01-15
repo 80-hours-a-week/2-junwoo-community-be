@@ -1,6 +1,6 @@
 from fastapi.responses import JSONResponse
 from app.storage import memory_store as db
-from app.utils.responses import ok, err
+from app.utils.responses import success_response, success_payload, raise_http_error
 from app.utils.security import valid_email, valid_password, hash_pw
 
 COOKIE_KW = dict(
@@ -19,44 +19,45 @@ def signup(payload: dict):
     profile_url = payload.get("profileImageUrl")
 
     if not email:
-        err(400, "EMAIL_REQUIRED")
+        raise_http_error(400, "EMAIL_REQUIRED")
     if not password:
-        err(400, "PASSWORD_REQUIRED")
+        raise_http_error(400, "PASSWORD_REQUIRED")
     if password != password_confirm:
-        err(400, "PASSWORD_CONFIRM_MISMATCH")
+        raise_http_error(400, "PASSWORD_CONFIRM_MISMATCH")
     if not nickname:
-        err(400, "NICKNAME_REQUIRED")
+        raise_http_error(400, "NICKNAME_REQUIRED")
 
     if not valid_email(email):
-        err(400, "INVALID_EMAIL")
+        raise_http_error(400, "INVALID_EMAIL")
     if not valid_password(password):
-        err(400, "INVALID_PASSWORD")
+        raise_http_error(400, "INVALID_PASSWORD")
     if len(nickname) > 10:
-        err(400, "INVALID_NICKNAME")
+        raise_http_error(400, "INVALID_NICKNAME")
 
     if db.get_user_by_email(email):
-        err(409, "EMAIL_ALREADY_EXISTS")
+        raise_http_error(409, "EMAIL_ALREADY_EXISTS")
     if db.get_user_by_nickname(nickname):
-        err(409, "NICKNAME_ALREADY_EXISTS")
+        raise_http_error(409, "NICKNAME_ALREADY_EXISTS")
 
     db.create_user(email, hash_pw(password), nickname, profile_url)
-    return ok("SIGNUP_SUCCESS", None)
+
+    return success_response("SIGNUP_SUCCESS", None, http_status=201)
 
 def login(payload: dict):
     email = payload.get("email")
     password = payload.get("password")
     if not email:
-        err(400, "EMAIL_REQUIRED")
+        raise_http_error(400, "EMAIL_REQUIRED")
     if not password:
-        err(400, "PASSWORD_REQUIRED")
+        raise_http_error(400, "PASSWORD_REQUIRED")
 
     u = db.get_user_by_email(email)
     if not u or u["passwordHash"] != hash_pw(password):
-        err(401, "UNAUTHORIZED")
+        raise_http_error(401, "UNAUTHORIZED")
 
     sid = db.create_session(u["userId"])
 
-    res = JSONResponse(content=ok("LOGIN_SUCCESS", {
+    res = JSONResponse(content=success_payload("LOGIN_SUCCESS", {
         "user": {
             "userId": u["userId"],
             "email": u["email"],
@@ -70,12 +71,13 @@ def login(payload: dict):
 def logout(u_and_sid):
     _, sid = u_and_sid
     db.delete_session(sid)
-    res = JSONResponse(content=ok("LOGOUT_SUCCESS", None))
+
+    res = JSONResponse(content=success_payload("LOGOUT_SUCCESS", None))
     res.delete_cookie("sessionId", path="/")
     return res
 
 def me(u):
-    return ok("USER_RETRIEVED", {
+    return success_response("USER_RETRIEVED", {
         "userId": u["userId"],
         "email": u["email"],
         "nickname": u["nickname"],
@@ -83,7 +85,7 @@ def me(u):
     })
 
 def email_availability(email: str):
-    return ok("EMAIL_AVAILABLE", {"available": db.get_user_by_email(email) is None})
+    return success_response("EMAIL_AVAILABLE", {"available": db.get_user_by_email(email) is None})
 
 def nickname_availability(nickname: str):
-    return ok("NICKNAME_AVAILABLE", {"available": db.get_user_by_nickname(nickname) is None})
+    return success_response("NICKNAME_AVAILABLE", {"available": db.get_user_by_nickname(nickname) is None})

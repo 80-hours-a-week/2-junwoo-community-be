@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from fastapi import HTTPException
+from fastapi.responses import JSONResponse
 
 ERRORS = {
     "EMAIL_REQUIRED": (400, "이메일을 입력해주세요."),
@@ -17,12 +20,19 @@ ERRORS = {
     "TITLE_TOO_LONG": (400, "제목은 최대 26자까지 작성 가능합니다."),
     "CONTENT_REQUIRED": (400, "내용을 입력해주세요."),
     "COMMENT_REQUIRED": (400, "댓글을 입력해주세요."),
+    "BAD_REQUEST": (400, "Bad request"),
 }
 
-def ok(code: str, data=None):
+def success_payload(code: str, data=None) -> dict:
+    """Builds a unified success payload (returns dict)."""
     return {"code": code, "data": data}
 
-def err(http_status: int, code: str):
+def success_response(code: str, data=None, http_status: int = 200) -> JSONResponse:
+    """Creates an explicit JSONResponse so controllers can `return` to end the request."""
+    return JSONResponse(status_code=http_status, content=success_payload(code, data))
+
+def raise_http_error(http_status: int, code: str) -> None:
+    """Raises HTTPException immediately (never returns)."""
     if code in ERRORS:
         st, msg = ERRORS[code]
         raise HTTPException(status_code=st, detail={"code": code, "message": msg})
