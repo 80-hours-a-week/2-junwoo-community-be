@@ -110,35 +110,54 @@ def update_post(post_id: int, title: str, content: str, file_url: Optional[str])
     p["updatedAt"] = now_iso()
 
 def delete_post(post_id: int):
-    _posts.pop(post_id, None)
+    # delete comments under post too
     for cid in list(_comments.keys()):
         if _comments[cid]["postId"] == post_id:
             _comments.pop(cid, None)
+    _posts.pop(post_id, None)
 
-def get_post(post_id: int, increase_hits: bool) -> Optional[dict]:
+def get_post(post_id: int, increase_hits: bool = True) -> Optional[dict]:
     p = _posts.get(post_id)
     if not p:
         return None
     if increase_hits:
         p["hits"] += 1
-        p["updatedAt"] = now_iso()
-    return to_post_detail_dict(p)
+    return to_post_dict(p)
 
 def list_posts(offset: int, limit: int) -> List[dict]:
-    items = list(_posts.values())
-    items.sort(key=lambda x: x["postId"], reverse=True)
-    items = items[offset:] if limit <= 0 else items[offset:offset + limit]
-    return [to_post_list_dict(p) for p in items]
+    items = [to_post_dict(_posts[k]) for k in sorted(_posts.keys())]
+    if offset < 0:
+        offset = 0
+    if limit <= 0:
+        return items[offset:]
+    return items[offset:offset + limit]
 
 def like_post(post_id: int, user_id: int) -> int:
-    p = _posts[post_id]
+    p = _posts.get(post_id)
+    if not p:
+        return 0
     p["likes"].add(user_id)
     return len(p["likes"])
 
 def unlike_post(post_id: int, user_id: int) -> int:
-    p = _posts[post_id]
+    p = _posts.get(post_id)
+    if not p:
+        return 0
     p["likes"].discard(user_id)
     return len(p["likes"])
+
+def to_post_dict(p: dict) -> dict:
+    return {
+        "postId": p["postId"],
+        "title": p["title"],
+        "content": p["content"],
+        "authorUserId": p["authorUserId"],
+        "fileUrl": p["fileUrl"],
+        "hits": p["hits"],
+        "likeCount": len(p["likes"]),
+        "createdAt": p["createdAt"],
+        "updatedAt": p["updatedAt"],
+    }
 
 
 # ---------- Comment functions ----------
@@ -147,23 +166,17 @@ def create_comment(post_id: int, content: str, author_user_id: int) -> dict:
     c = {
         "commentId": _comment_seq,
         "postId": post_id,
-        "content": content,
         "authorUserId": author_user_id,
+        "content": content,
         "createdAt": now_iso(),
         "updatedAt": now_iso(),
     }
     _comments[_comment_seq] = c
     _comment_seq += 1
-    return to_comment_dict(c)
+    return c
 
 def get_comment(comment_id: int) -> Optional[dict]:
-    c = _comments.get(comment_id)
-    return to_comment_dict(c) if c else None
-
-def list_comments(post_id: int) -> List[dict]:
-    items = [c for c in _comments.values() if c["postId"] == post_id]
-    items.sort(key=lambda x: x["commentId"])
-    return [to_comment_dict(c) for c in items]
+    return _comments.get(comment_id)
 
 def update_comment(comment_id: int, content: str):
     c = _comments.get(comment_id)
@@ -175,49 +188,10 @@ def update_comment(comment_id: int, content: str):
 def delete_comment(comment_id: int):
     _comments.pop(comment_id, None)
 
-
-# ---------- serializers ----------
-def _comment_count(post_id: int) -> int:
-    return sum(1 for c in _comments.values() if c["postId"] == post_id)
-
-def to_post_list_dict(p: dict) -> dict:
-    likes = p.get("likes", set())
-    return {
-        "postId": p["postId"],
-        "title": (p.get("title") or "")[:26],
-        "authorUserId": p["authorUserId"],
-        "fileUrl": p.get("fileUrl"),
-        "hits": p.get("hits", 0),
-        "likeCount": len(likes),
-        "commentCount": _comment_count(p["postId"]),
-        "createdAt": p["createdAt"],
-        "updatedAt": p["updatedAt"],
-    }
-
-def to_post_dict(p: dict) -> dict:
-    likes = p.get("likes", set())
-    return {
-        "postId": p["postId"],
-        "title": p["title"],
-        "content": p["content"],
-        "authorUserId": p["authorUserId"],
-        "fileUrl": p.get("fileUrl"),
-        "hits": p.get("hits", 0),
-        "likeCount": len(likes),
-        "commentCount": _comment_count(p["postId"]),
-        "createdAt": p["createdAt"],
-        "updatedAt": p["updatedAt"],
-    }
-
-def to_post_detail_dict(p: dict) -> dict:
-    return to_post_dict(p)
-
-def to_comment_dict(c: dict) -> dict:
-    return {
-        "commentId": c["commentId"],
-        "postId": c["postId"],
-        "content": c["content"],
-        "authorUserId": c["authorUserId"],
-        "createdAt": c["createdAt"],
-        "updatedAt": c["updatedAt"],
-    }
+def list_comments(post_id: int) -> List[dict]:
+    items = []
+    for cid in sorted(_comments.keys()):
+        c = _comments[cid]
+        if c["postId"] == post_id:
+            items.append(dict(c))
+    return items
