@@ -1,4 +1,11 @@
 from fastapi.responses import JSONResponse
+
+from app.models.user import UserDict
+from app.schemas.users import (
+    UpdateMeRequest,
+    UpdatePasswordRequest,
+    UpdateProfileImageUrlRequest,
+)
 from app.storage import memory_store as db
 from app.utils.responses import success_response, success_payload, raise_http_error
 from app.utils.security import valid_password, hash_pw
@@ -20,7 +27,7 @@ def get_user(user_id: int):
     )
 
 
-def get_me(u):
+def get_me(u: UserDict):
     return success_response(
         "USER_RETRIEVED",
         {
@@ -32,8 +39,10 @@ def get_me(u):
     )
 
 
-def update_me(u, payload: dict):
-    nickname = payload.get("nickname")
+def update_me(u: UserDict, payload: UpdateMeRequest):
+    nickname = payload.nickname
+
+    # (기존 에러코드 유지)
     if not nickname:
         raise_http_error(400, "NICKNAME_REQUIRED")
     if len(nickname) > 10:
@@ -48,23 +57,24 @@ def update_me(u, payload: dict):
     return success_response("USER_UPDATED", None)
 
 
-def update_password(u, payload: dict):
-    password = payload.get("password")
-    password_confirm = payload.get("passwordConfirm")
-    if not password:
-        raise_http_error(400, "PASSWORD_REQUIRED")
-    if password != password_confirm:
-        raise_http_error(400, "PASSWORD_CONFIRM_MISMATCH")
-    if not valid_password(password):
+def update_password(u: UserDict, payload: UpdatePasswordRequest):
+    current_pw = payload.currentPassword
+    new_pw = payload.newPassword
+
+    # 현재 비밀번호 검증 (실패 시 기존 체계에서 가장 가까운 코드: UNAUTHORIZED)
+    if hash_pw(current_pw) != u["passwordHash"]:
+        raise_http_error(401, "UNAUTHORIZED")
+
+    if not valid_password(new_pw):
         raise_http_error(400, "INVALID_PASSWORD")
 
-    u["passwordHash"] = hash_pw(password)
+    u["passwordHash"] = hash_pw(new_pw)
     u["updatedAt"] = db.now_iso()
     return success_response("PASSWORD_UPDATED", None)
 
 
-def update_profile_image_url(u, payload: dict):
-    url = payload.get("profileImageUrl")
+def update_profile_image_url(u: UserDict, payload: UpdateProfileImageUrlRequest):
+    url = payload.profileImageUrl
     if not url:
         raise_http_error(400, "BAD_REQUEST")
 

@@ -89,3 +89,4 @@ def email_availability(email: str):
 
 def nickname_availability(nickname: str):
     return success_response("NICKNAME_AVAILABLE", {"available": db.get_user_by_nickname(nickname) is None})
+
