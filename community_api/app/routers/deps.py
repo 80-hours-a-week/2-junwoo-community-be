@@ -1,5 +1,5 @@
 from fastapi import Cookie
-from app.storage import memory_store as db
+from app.storage import db
 from app.utils.responses import raise_http_error
 from app.models.user import UserDict
 

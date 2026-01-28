@@ -6,7 +6,7 @@ from app.schemas.users import (
     UpdatePasswordRequest,
     UpdateProfileImageUrlRequest,
 )
-from app.storage import memory_store as db
+from app.storage import db
 from app.utils.responses import success_response, success_payload, raise_http_error
 from app.utils.security import valid_password, hash_pw
 
@@ -53,7 +53,23 @@ def update_me(u: UserDict, payload: UpdateMeRequest):
         raise_http_error(409, "NICKNAME_ALREADY_EXISTS")
 
     u["nickname"] = nickname
+    
+    # Handle Profile Image
+    if payload.profileImageUrl is not None:
+        url = payload.profileImageUrl
+        if url and url.startswith("data:"):
+            fid = db.save_file(url)
+            if fid:
+                url = f"/public/files/{fid}"
+        
+        u["profileImageUrl"] = url
+        db.update_user_profile_image(u["userId"], url)
+
     u["updatedAt"] = db.now_iso()
+    
+    # DB Update (Nickname)
+    db.update_user_nickname(u["userId"], nickname)
+    
     return success_response("USER_UPDATED", None)
 
 
@@ -70,6 +86,10 @@ def update_password(u: UserDict, payload: UpdatePasswordRequest):
 
     u["passwordHash"] = hash_pw(new_pw)
     u["updatedAt"] = db.now_iso()
+    
+    # DB Update
+    db.update_user_password(u["userId"], u["passwordHash"])
+    
     return success_response("PASSWORD_UPDATED", None)
 
 
@@ -78,8 +98,16 @@ def update_profile_image_url(u: UserDict, payload: UpdateProfileImageUrlRequest)
     if not url:
         raise_http_error(400, "BAD_REQUEST")
 
+    if url and url.startswith("data:"):
+        fid = db.save_file(url)
+        if fid:
+            url = f"/public/files/{fid}"
+
     u["profileImageUrl"] = url
     u["updatedAt"] = db.now_iso()
+    
+    # DB Update
+    db.update_user_profile_image(u["userId"], url)
 
     return success_response("PROFILE_IMAGE_UPDATED", {"profileImageUrl": url})
 

@@ -1,4 +1,4 @@
-from app.storage import memory_store as db
+from app.storage import db
 from app.utils.responses import success_response, raise_http_error
 
 
@@ -26,7 +26,15 @@ def create_post(u, payload: dict):
     if not content:
         raise_http_error(400, "CONTENT_REQUIRED")
 
-    p = db.create_post(title=title, content=content, author_user_id=u["userId"], file_url=file_url)
+    real_file_url = None
+    if file_url and file_url.startswith("data:"):
+        fid = db.save_file(file_url)
+        if fid:
+            real_file_url = f"/public/files/{fid}"
+    else:
+        real_file_url = file_url
+
+    p = db.create_post(title=title, content=content, author_user_id=u["userId"], file_url=real_file_url)
     return success_response("POST_CREATED", {"postId": p["postId"]}, http_status=201)
 
 
@@ -48,7 +56,15 @@ def update_post(u, post_id: int, payload: dict):
     if not content:
         raise_http_error(400, "CONTENT_REQUIRED")
 
-    db.update_post(post_id, title, content, file_url)
+    real_file_url = None
+    if file_url and file_url.startswith("data:"):
+        fid = db.save_file(file_url)
+        if fid:
+            real_file_url = f"/public/files/{fid}"
+    else:
+        real_file_url = file_url
+
+    db.update_post(post_id, title, content, real_file_url)
     return success_response("POST_UPDATED", None)
 
 
