@@ -77,9 +77,9 @@ def update_password(u: UserDict, payload: UpdatePasswordRequest):
     current_pw = payload.currentPassword
     new_pw = payload.newPassword
 
-    # 현재 비밀번호 검증 (실패 시 기존 체계에서 가장 가까운 코드: UNAUTHORIZED)
+    # 현재 비밀번호 검증
     if hash_pw(current_pw) != u["passwordHash"]:
-        raise_http_error(401, "UNAUTHORIZED")
+        raise_http_error(400, "CURRENT_PASSWORD_INCORRECT")
 
     if not valid_password(new_pw):
         raise_http_error(400, "INVALID_PASSWORD")
