@@ -1,19 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, List
 import uuid
+import base64
 from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine, Base
 from app.models.orm import User, Session as DBSession, Post, Comment, File
 
 # Initialize tables (Creating tables if not exist)
 Base.metadata.create_all(bind=engine)
-
-import base64
-import uuid
-
-# In-memory storage was removed. Now using DB.
-
-from datetime import timedelta
 
 def now_kst():
     return datetime.utcnow() + timedelta(hours=9)
@@ -68,7 +62,6 @@ def to_comment_dict(c: Comment) -> dict:
         "commentId": c.id,
         "postId": c.post_id,
         "authorUserId": c.author_user_id,
-        "content": c.content,
         "content": c.content,
         "createdAt": c.created_at.isoformat(),
         "updatedAt": c.updated_at.isoformat(),

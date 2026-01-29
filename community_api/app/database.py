@@ -10,7 +10,7 @@ load_dotenv()
 # 포맷: mysql+pymysql://<username>:<password>@<host>:<port>/<dbname>
 SQLALCHEMY_DATABASE_URL = os.getenv(
     "DATABASE_URL", 
-    "mysql+pymysql://root:020725@localhost:3306/community_db"
+    "mysql+pymysql://community_user:secure_password_123!@localhost:3306/community_db"
 )
 
 # pool_recycle: MySQL 연결 끊김 방지
