@@ -8,10 +8,20 @@ from app.utils.responses import success_response
 
 app = FastAPI(title="Community API")
 
+# ✅ 쿠키 기반 세션이면 "*" 절대 금지
+FRONT_ORIGINS = [
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=FRONT_ORIGINS,   # ✅ 정확한 origin만 허용
+    allow_credentials=True,        # ✅ 쿠키 허용
     allow_methods=["*"],
     allow_headers=["*"],
 )

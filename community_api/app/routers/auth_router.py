@@ -20,10 +20,10 @@ def logout(u_and_sid=Depends(require_user_with_sid)):
 def me(u=Depends(require_user)):
     return controller.me(u)
 
-@router.get("/emails/availability")
+@router.get("/availability/email")
 def email_availability(email: str):
     return controller.email_availability(email)
 
-@router.get("/nicknames/availability")
+@router.get("/availability/nickname")
 def nickname_availability(nickname: str):
     return controller.nickname_availability(nickname)

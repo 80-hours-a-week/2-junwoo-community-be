@@ -1,5 +1,5 @@
 from fastapi.responses import JSONResponse
-from app.storage import memory_store as db
+from app.storage import db
 from app.utils.responses import success_response, success_payload, raise_http_error
 from app.utils.security import valid_email, valid_password, hash_pw
 
@@ -39,6 +39,11 @@ def signup(payload: dict):
     if db.get_user_by_nickname(nickname):
         raise_http_error(409, "NICKNAME_ALREADY_EXISTS")
 
+    if profile_url and profile_url.startswith("data:"):
+        fid = db.save_file(profile_url)
+        if fid:
+            profile_url = f"/public/files/{fid}"
+
     db.create_user(email, hash_pw(password), nickname, profile_url)
 
     return success_response("SIGNUP_SUCCESS", None, http_status=201)
@@ -52,8 +57,10 @@ def login(payload: dict):
         raise_http_error(400, "PASSWORD_REQUIRED")
 
     u = db.get_user_by_email(email)
-    if not u or u["passwordHash"] != hash_pw(password):
-        raise_http_error(401, "UNAUTHORIZED")
+    if not u:
+        raise_http_error(404, "USER_NOT_FOUND")
+    if u["passwordHash"] != hash_pw(password):
+        raise_http_error(401, "PASSWORD_INCORRECT")
 
     sid = db.create_session(u["userId"])
 
