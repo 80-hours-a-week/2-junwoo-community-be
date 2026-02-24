@@ -1,0 +1,15 @@
+{
+    "python.defaultInterpreterPath": "/opt/homebrew/bin/python3",
+    "python.analysis.extraPaths": [
+        "./community_api",
+        "/opt/homebrew/lib/python3.14/site-packages"
+    ],
+    "python.autoComplete.extraPaths": [
+        "./community_api",
+        "/opt/homebrew/lib/python3.14/site-packages"
+    ],
+    "python.analysis.typeCheckingMode": "off",
+    "files.exclude": {
+        "**/__pycache__": true
+    }
+}

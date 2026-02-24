@@ -10,6 +10,9 @@ app = FastAPI(title="Community API")
 
 # ✅ 쿠키 기반 세션이면 "*" 절대 금지
 FRONT_ORIGINS = [
+    "http://localhost",
+    "http://127.0.0.1",
+    "http://localhost:80",
     "http://localhost:5500",
     "http://127.0.0.1:5500",
     "http://localhost:5173",
