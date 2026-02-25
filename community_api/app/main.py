@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request, HTTPException
+from mangum import Mangum
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -45,3 +46,6 @@ def health():
     return success_response("OK", None)
 
 register_routers(app)
+
+# ✅ AWS Lambda용 핸들러 (Mangum) 추가
+handler = Mangum(app)
