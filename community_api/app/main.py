@@ -1,6 +1,5 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
 
 from app.routers.index import register_routers
@@ -19,6 +18,8 @@ FRONT_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://3.35.126.220",
+    "http://3.35.126.220:80",
 ]
 
 app.add_middleware(
