@@ -6,3 +6,9 @@ __pycache__/
 .venv
 env/
 venv/
+
+*.tar.gz
+.terraform/
+*.tfstate
+*.tfstate.*
+Crashpad/
