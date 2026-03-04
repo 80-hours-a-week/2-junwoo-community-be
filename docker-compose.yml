@@ -13,7 +13,7 @@ services:
 
   backend:
     # TODO: Replace with your actual Docker Hub username, e.g., your-username/junwoo-backend
-    image: 958933161468.dkr.ecr.ap-northeast-2.amazonaws.com/junwoo-backend:latest
+    image: junwoo0725/junwoo-backend:latest
     container_name: community_be
     restart: always
     ports:
