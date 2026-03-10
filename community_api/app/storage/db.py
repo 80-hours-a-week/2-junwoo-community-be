@@ -4,7 +4,7 @@ import uuid
 import base64
 from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine, Base
-from app.models.orm import User, Session as DBSession, Post, Comment, File
+from app.models.orm import User, Session as DBSession, Post, Comment, File, Conversation, Message
 
 # Initialize tables (Creating tables if not exist)
 Base.metadata.create_all(bind=engine)
@@ -389,3 +389,136 @@ def get_file_data(file_id: str):
         return None, None
     finally:
         db.close()
+
+# ---------- Chat functions ----------
+def get_conversations(user_id: int) -> List[dict]:
+    db = get_db_session()
+    try:
+        convs = db.query(Conversation).filter(
+            (Conversation.user1_id == user_id) | (Conversation.user2_id == user_id)
+        ).all()
+        
+        result = []
+        for c in convs:
+            other_user = c.user2 if c.user1_id == user_id else c.user1
+            if not other_user or other_user.deleted_at:
+                continue
+                
+            last_message = None
+            last_message_at = c.updated_at
+            unread_count = 0
+            
+            if c.messages:
+                last_msg = c.messages[-1]
+                last_message = last_msg.content
+                last_message_at = last_msg.created_at
+                
+                # Count unread
+                for m in c.messages:
+                    if m.sender_id != user_id and not m.is_read:
+                        unread_count += 1
+                        
+            result.append({
+                "id": c.id,
+                "other_user_id": other_user.id,
+                "other_user_nickname": other_user.nickname,
+                "other_user_profile": other_user.profile_image_url,
+                "last_message": last_message,
+                "last_message_at": last_message_at,
+                "unread_count": unread_count
+            })
+            
+        # Sort by last_message_at desc safely
+        def safe_date(d):
+            if isinstance(d, datetime): return d
+            if isinstance(d, str):
+                try: return datetime.fromisoformat(str(d).replace('Z', '+00:00'))
+                except ValueError: return datetime.min
+            return datetime.min
+            
+        result.sort(key=lambda x: safe_date(x["last_message_at"]), reverse=True)
+        return result
+    finally:
+        db.close()
+
+def get_or_create_conversation(user1_id: int, user2_id: int) -> int:
+    # Ensure user1_id < user2_id for consistency
+    u1, u2 = min(user1_id, user2_id), max(user1_id, user2_id)
+    db = get_db_session()
+    try:
+        conv = db.query(Conversation).filter(
+            Conversation.user1_id == u1,
+            Conversation.user2_id == u2
+        ).first()
+        
+        if not conv:
+            conv = Conversation(user1_id=u1, user2_id=u2)
+            db.add(conv)
+            db.commit()
+            db.refresh(conv)
+            
+        return conv.id
+    finally:
+        db.close()
+
+def get_messages(conversation_id: int, limit: int = 50) -> List[dict]:
+    db = get_db_session()
+    try:
+        messages = db.query(Message).filter(Message.conversation_id == conversation_id)\
+            .order_by(Message.created_at.desc()).limit(limit).all()
+            
+        result = []
+        for m in reversed(messages): # reverse to make it chronological
+            result.append({
+                "id": m.id,
+                "conversation_id": m.conversation_id,
+                "sender_id": m.sender_id,
+                "content": m.content,
+                "is_read": m.is_read,
+                "created_at": m.created_at.isoformat()
+            })
+        return result
+    finally:
+        db.close()
+
+def create_message(conversation_id: int, sender_id: int, content: str) -> dict:
+    db = get_db_session()
+    try:
+        msg = Message(
+            conversation_id=conversation_id,
+            sender_id=sender_id,
+            content=content
+        )
+        db.add(msg)
+        
+        conv = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+        if conv:
+            conv.updated_at = now_kst()
+            
+        db.commit()
+        db.refresh(msg)
+        
+        return {
+            "id": msg.id,
+            "conversation_id": msg.conversation_id,
+            "sender_id": msg.sender_id,
+            "content": msg.content,
+            "is_read": msg.is_read,
+            "created_at": msg.created_at.isoformat()
+        }
+    finally:
+        db.close()
+
+def mark_messages_read(conversation_id: int, target_user_id: int):
+    # mark messages sent *to* target_user_id as read
+    db = get_db_session()
+    try:
+        db.query(Message).filter(
+            Message.conversation_id == conversation_id,
+            Message.sender_id != target_user_id,
+            Message.is_read == False
+        ).update({"is_read": True})
+        db.commit()
+    finally:
+        db.close()
+

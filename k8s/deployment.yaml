@@ -5,7 +5,7 @@ metadata:
   labels:
     app: community-backend
 spec:
-  replicas: 1
+  replicas: 2       # horizontal scale — Redis Pub/Sub keeps WS messages in sync
   selector:
     matchLabels:
       app: community-backend
@@ -23,6 +23,8 @@ spec:
         env:
         - name: DATABASE_URL
           value: "mysql+pymysql://root:020725@db:3306/community_db"
+        - name: REDIS_URL
+          value: "redis://redis:6379"
         resources:
           requests:
             cpu: "250m"

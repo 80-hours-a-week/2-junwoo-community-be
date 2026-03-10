@@ -6,3 +6,5 @@ python-dotenv
 cryptography
 mangum
 boto3
+websockets
+redis[asyncio]

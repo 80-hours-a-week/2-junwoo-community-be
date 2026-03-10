@@ -11,17 +11,24 @@ services:
     volumes:
       - db_data:/var/lib/mysql
 
-  backend:
-    # TODO: Replace with your actual Docker Hub username, e.g., your-username/junwoo-backend
-    image: junwoo0725/junwoo-backend:latest
-    container_name: community_be
+  redis:
+    image: redis:7-alpine
+    container_name: community_redis
     restart: always
     ports:
-      - "8000:8000"
+      - "6379:6379"
+
+  backend:
+    image: junwoo0725/junwoo-backend:latest
+    restart: always
+    ports:
+      - "8000-8001:8000"
     environment:
       - DATABASE_URL=mysql+pymysql://root:020725@db:3306/community_db
+      - REDIS_URL=redis://redis:6379
     depends_on:
       - db
+      - redis
 
 volumes:
   db_data:
