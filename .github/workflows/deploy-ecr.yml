@@ -28,8 +28,28 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: junwoo-backend # AWS ECR에 생성한 백엔드 리포지토리 이름
-        IMAGE_TAG: latest
+        IMAGE_TAG: ${{ github.sha }}
       run: |
-        # AMD64(리눅스 서버용) 아키텍처로 빌드하여 ECR에 푸시합니다
         docker build --platform linux/amd64 -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Deploy to Kubernetes
+      env:
+        KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG }}
+        IMAGE_TAG: ${{ github.sha }}
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: junwoo-backend
+      run: |
+        mkdir -p $HOME/.kube
+        echo "$KUBECONFIG_CONTENT" > $HOME/.kube/config
+        
+        # Update image tag in manifest
+        sed -i "s|image: .*junwoo-backend:.*|image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG|g" k8s/assignments/be-deployment.yaml
+        
+        # Apply manifests
+        kubectl apply -f k8s/assignments/be-deployment.yaml

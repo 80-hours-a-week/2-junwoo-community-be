@@ -8,6 +8,7 @@ from app.database import Base
 def now_kst():
     return datetime.utcnow() + timedelta(hours=9)
 
+
 # Many-to-Many relationship for Post Likes
 post_likes = Table(
     "post_likes",

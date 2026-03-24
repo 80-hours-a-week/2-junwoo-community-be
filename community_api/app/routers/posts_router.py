@@ -5,7 +5,7 @@ from app.routers.deps import require_user
 router = APIRouter(prefix="/v1/posts", tags=["Posts"])
 
 @router.get("")
-def list_posts(offset: int = 0, limit: int = 0):
+def list_posts(offset: int = 0, limit: int = 10):
     return controller.list_posts(offset, limit)
 
 @router.get("/{post_id:int}")
