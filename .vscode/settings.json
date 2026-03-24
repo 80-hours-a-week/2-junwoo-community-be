@@ -1,12 +1,10 @@
 {
-    "python.defaultInterpreterPath": "/opt/homebrew/bin/python3",
+    "python.defaultInterpreterPath": "${workspaceFolder}/community_api/venv/bin/python",
     "python.analysis.extraPaths": [
-        "./community_api",
-        "/opt/homebrew/lib/python3.14/site-packages"
+        "${workspaceFolder}/community_api"
     ],
     "python.autoComplete.extraPaths": [
-        "./community_api",
-        "/opt/homebrew/lib/python3.14/site-packages"
+        "${workspaceFolder}/community_api"
     ],
     "python.analysis.typeCheckingMode": "off",
     "files.exclude": {
