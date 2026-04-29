@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 
 ERRORS = {
     "EMAIL_REQUIRED": (400, "이메일을 입력해주세요."),
@@ -29,7 +30,7 @@ def success_payload(code: str, data=None) -> dict:
 
 def success_response(code: str, data=None, http_status: int = 200) -> JSONResponse:
     """Creates an explicit JSONResponse so controllers can `return` to end the request."""
-    return JSONResponse(status_code=http_status, content=success_payload(code, data))
+    return JSONResponse(status_code=http_status, content=jsonable_encoder(success_payload(code, data)))
 
 def raise_http_error(http_status: int, code: str) -> None:
     """Raises HTTPException immediately (never returns)."""

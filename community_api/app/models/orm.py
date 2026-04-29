@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Table, LargeBinary
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Table, LargeBinary, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.mysql import LONGBLOB
@@ -7,6 +7,7 @@ from app.database import Base
 
 def now_kst():
     return datetime.utcnow() + timedelta(hours=9)
+
 
 # Many-to-Many relationship for Post Likes
 post_likes = Table(
@@ -83,3 +84,29 @@ class Comment(Base):
     # Relationships
     post = relationship("Post", back_populates="comments")
     author = relationship("User", back_populates="comments")
+
+class Conversation(Base):
+    __tablename__ = "conversations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user1_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user2_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=now_kst)
+    updated_at = Column(DateTime(timezone=True), default=now_kst, onupdate=now_kst)
+
+    user1 = relationship("User", foreign_keys=[user1_id])
+    user2 = relationship("User", foreign_keys=[user2_id])
+    messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan", order_by="Message.created_at")
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(Integer, ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False, index=True)
+    sender_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    content = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), default=now_kst)
+
+    conversation = relationship("Conversation", back_populates="messages")
+    sender = relationship("User", foreign_keys=[sender_id])
