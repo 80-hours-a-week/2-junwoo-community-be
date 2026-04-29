@@ -366,7 +366,6 @@ def save_file(base64_str: str) -> str:
         mime = "application/octet-stream"
 
     # 2. Decode
-    # 2. Decode
     binary_data = base64.b64decode(data_str)
 
     # 3. Save to DB
